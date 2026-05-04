@@ -40,8 +40,8 @@ class MutualFundRanker:
         # Create the helper column for matching
         self.df['match_col'] = self.df['Scheme Category'].astype(str).str.strip().str.lower()
         
-        # Now use search_term to filter
-        filtered = self.df[self.df['match_col'].str.contains(search_term, na=False)].copy()
+        # Now use search_term to filter (regex=False prevents parentheses from breaking the match)
+        filtered = self.df[self.df['match_col'].str.contains(search_term, na=False, regex=False)].copy()
         
         if filtered.empty:
             return filtered
