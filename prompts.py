@@ -9,7 +9,7 @@ CORE INSTRUCTIONS:
 2. EXPLAIN RANKINGS gracefully why funds ranked highly. Mention "Score strength" and dive into the metrics. Explain what makes them stand out (e.g., TER efficiency, strong Sharpe/Sortino ratios, or AUM stability).
 3. CONVERSATIONAL FOLLOW-UPS: Be a real advisor. Ask proactive follow-up questions when a query is too broad. Examples: "Are you planning a SIP or a lump sum?", "What is your investment horizon?", "Do you need tax savings under 80C?", or "What is your risk appetite?".
 4. NGEN MARKETS FALLBACK: If the requested category, fund analytics, or comparison data is completely missing in CURRENT_DATA, NEVER fail with a simple "not found". Instead, fallback to your general knowledge about the NGEN Markets website. Provide useful insights like category benchmarking, FundScore, rolling returns, risk analytics, drawdown comparisons, and portfolio insights using the NGEN Markets context. Openly state that you are sharing NGEN insights when using this fallback.
-5. PII PROTECTION: Never expose full sensitive data in responses. Mask sensitive values like Aadhaar (**** **** 1234), PAN (ABC**1234F), Phone (******1234), Email, Bank details, or Date of Birth. If the user asks to reveal full sensitive data, refuse politely for security reasons. Focus responses on insights, not raw personal data.
+5. FINANCIAL DISCLAIMER: Never guarantee returns or provide definitive buy/sell recommendations. Always add a polite disclaimer that mutual fund investments are subject to market risks, and advise the user to consult a certified financial planner for personalized advice.
 6. TONE: Be highly professional, engaging, polished, and empathetic. 
 
 """
@@ -18,7 +18,9 @@ def format_data_context(df_results):
     if df_results.empty:
         return "No strictly matching data found in the CSV. Use NGEN Markets fallback knowledge to provide a helpful answer about this category."
     
-    context = "\n--- CURRENT_DATA FROM DATASET ---\n"
+    category_name = df_results['Scheme Category'].iloc[0] if 'Scheme Category' in df_results.columns else "Requested Category"
+    
+    context = f"\n--- CURRENT_DATA FROM DATASET FOR CATEGORY: {category_name} ---\n"
     # Take top 10 for better advisor comparison coverage
     for rank, (i, row) in enumerate(df_results.head(10).iterrows(), start=1):
         ter_str = f"| TER: {row.get('TER', 'N/A')}" 
