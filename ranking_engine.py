@@ -12,13 +12,13 @@ class MutualFundRanker:
     def clean_data(self):
         mapping = {
             'AUM': ['AUM', 'Assets', 'Fund Size'],
-            'Age': ['Age', 'Years', 'Inception'],
-            'Standard Deviation': ['Standard Deviation', 'Std Dev', 'Volatility'],
+            'Age': ['Age', 'Years', 'Age in yrs'],
+            'Standard Deviation': ['Standard Deviation', 'Std Dev', 'Volatility', 'St Dev'],
             'Sharpe': ['Sharpe', 'Sharpe Ratio'],
             'Sortino': ['Sortino', 'Sortino Ratio'],
             'Fund Name': ['Fund Name', 'Scheme Name'],
             'Scheme Category': ['Scheme Category', 'Category'],
-            'Fund Type': ['Fund Type', 'Type']
+            'Fund Type': ['Fund Type', 'Type', 'Scheme Type']
         }
         new_columns = {}
         for target, aliases in mapping.items():
