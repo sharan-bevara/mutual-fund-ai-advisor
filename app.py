@@ -9,7 +9,18 @@ from prompts import SYSTEM_PROMPT, format_data_context
 def parse_intent(prompt, df):
     p_low = prompt.lower()
     
+    unique_cats = df['Scheme Category'].dropna().unique() if 'Scheme Category' in df.columns else []
+    
+    # 1. Exact/Substring matching in actual categories FIRST
+    # Sort by length descending so "Large & Mid Cap" matches before "Large Cap"
+    sorted_cats = sorted(unique_cats, key=lambda x: len(str(x)), reverse=True)
+    for cat in sorted_cats:
+        if str(cat).lower() in p_low:
+            return cat
+            
+    # 2. Search synonyms mappings
     synonym_mapper = {
+        "large & mid cap": ["large and mid", "large & mid", "large-mid"],
         "large cap": ["bluechip", "large cap", "large caps", "largecap", "large-cap", "blue chip", "nifty"],
         "elss": ["tax saver", "tax saving", "80c", "elss", "tax-saver"],
         "flexi cap": ["flexi", "flexi cap", "flexi-cap", "flexicap", "multicap", "multi cap"],
@@ -18,9 +29,6 @@ def parse_intent(prompt, df):
         "liquid": ["safe sip", "liquid", "safe", "parking", "low risk"]
     }
     
-    unique_cats = df['Scheme Category'].dropna().unique() if 'Scheme Category' in df.columns else []
-        
-    # Search synonyms mappings
     for cat_intent, syn_list in synonym_mapper.items():
         if any(syn in p_low for syn in syn_list):
             for real_cat in unique_cats:
@@ -28,18 +36,25 @@ def parse_intent(prompt, df):
                     return real_cat
             return cat_intent
             
-    # Substring matching in actual categories
+    # 3. Intelligent Keyword Matching for Sectoral/Thematic Funds
+    ignore_words = ['fund', 'sectoral', 'thematic', 'scheme', 'equity', 'linked', 'savings', '-', '&', 'services', 'industry', 'yield', 'care']
     for cat in unique_cats:
-        if str(cat).lower() in p_low:
-            return cat
+        cat_lower = str(cat).lower()
+        clean_cat = cat_lower.replace('-', ' ').replace('&', ' ').replace('(', ' ').replace(')', ' ')
+        keywords = [word.strip() for word in clean_cat.split() if word.strip() not in ignore_words]
+        
+        for kw in keywords:
+            # Match specific keywords like "technology", "pharma", "auto", "banks"
+            if len(kw) >= 4 and kw in p_low.replace('-', ' '):
+                return cat
             
-    # Specific Fund Name resolution
+    # 4. Specific Fund Name resolution
     if 'Fund Name' in df.columns:
         for fname in df['Fund Name'].dropna().unique():
             if len(str(fname)) > 4 and str(fname).lower() in p_low:
                 return df[df['Fund Name'] == fname]['Scheme Category'].iloc[0]
                 
-    # Specific Scheme Type resolution
+    # 5. Specific Scheme Type resolution
     if 'Scheme Type' in df.columns:
         for stype in df['Scheme Type'].dropna().unique():
             if len(str(stype)) > 4 and str(stype).lower() in p_low:
@@ -94,7 +109,24 @@ with col_chat:
         # Hide the system data context from the user UI
         if msg.get("role") != "system":
             st.chat_message(msg["role"]).write(msg["content"])
-
+            
+    # Auto-scroll to the newest message
+    import streamlit.components.v1 as components
+    components.html(
+        """
+        <script>
+            const doc = window.parent.document;
+            setTimeout(() => {
+                const scrollContainer = doc.querySelector('.stAppViewContainer') || doc.querySelector('.main') || doc.documentElement;
+                if (scrollContainer) {
+                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                }
+            }, 100);
+        </script>
+        """,
+        height=0
+    )
+                
 with col_table:
     st.subheader("📊 Ranking Results")
     if st.session_state.prefs["scheme"]:
